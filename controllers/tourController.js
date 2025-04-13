@@ -1,11 +1,22 @@
-const mongoose = require("mongoose")
 const Tour = require("../models/tourModel.js")
 
 
 exports.getAllTours = async (req, res) => {
     try {
-        const tours = await Tour.find()
-        res.json({ message: 'getAllTours başarili', tours })
+        const toursQuery = await Tour.find(req.formattedQuery)
+
+        if (req.query.sort) {
+            toursQuery.sort(req.query.sort.split, (',').join(' '))
+        } else {
+            toursQuery.sort('-createdAt')
+        }
+
+        if (req.query.fields) {
+            toursQuery.select(req.query.fields.replaceAll(",", " "))
+        }
+
+        const tours = await toursQuery
+        res.json({ message: 'getAllTours başarili', results: tours.length, tours })
     } catch (error) {
         res.staus(404).json({ text: "getAllTours Başarisiz!!!" })
     }

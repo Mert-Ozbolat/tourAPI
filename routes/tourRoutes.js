@@ -1,10 +1,11 @@
 const express = require('express')
 const { getAllTours, createTour, getTour, updateTour, deleteTour } = require('../controllers/tourController.js')
+const formattedQuery = require('../middleware/formatQuery.js')
 
 const router = express.Router()
 
 router.route('/')
-    .get(getAllTours)
+    .get(formattedQuery, getAllTours)
     .post(createTour)
 
 router.route('/:id')
