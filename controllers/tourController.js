@@ -2,6 +2,9 @@ const Tour = require("../models/tourModel.js")
 const APIFeatures = require("../utils/apiFeatures.js")
 
 
+
+
+
 exports.getAllTours = async (req, res) => {
     try {
         const features = new APIFeatures(
@@ -58,3 +61,25 @@ exports.updateTour = async (req, res) => {
         res.status(400).json({ text: 'update basarisiz' })
     }
 }
+
+exports.aliasTopTours = async (req, res, next) => {
+    req.query.sort = "-ratingsAverage, -ratingsQuantity"
+    req.query['price[lte]'] = "1200"
+    req.query.limit = 5
+    req.query.fields = 'name,price,ratingsAverage,summary,difficulty'
+
+    next()
+}
+
+exports.getTourStats = async (req, res) => {
+    try {
+        const stats = await Tour.aggregate([
+            {
+                $match: { ratingsAverage: { $gte: 4.0 } },
+            },
+        ]);
+        return res.status(200).json({ message: "rapor olusturuldu", stats });
+    } catch (err) {
+        return res.status(500).json({ message: "rapor olusturulamadi" });
+    }
+};
