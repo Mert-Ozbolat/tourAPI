@@ -1,21 +1,22 @@
 const Tour = require("../models/tourModel.js")
+const APIFeatures = require("../utils/apiFeatures.js")
 
 
 exports.getAllTours = async (req, res) => {
     try {
-        const toursQuery = await Tour.find(req.formattedQuery)
+        const features = new APIFeatures(
+            Tour.find(),
+            req.query,
+            req.formattedQuery
+        )
+            .filter()
+            .limit()
+            .sort()
+            .pagination()
 
-        if (req.query.sort) {
-            toursQuery.sort(req.query.sort.split, (',').join(' '))
-        } else {
-            toursQuery.sort('-createdAt')
-        }
 
-        if (req.query.fields) {
-            toursQuery.select(req.query.fields.replaceAll(",", " "))
-        }
+        const tours = await features.query
 
-        const tours = await toursQuery
         res.json({ message: 'getAllTours başarili', results: tours.length, tours })
     } catch (error) {
         res.staus(404).json({ text: "getAllTours Başarisiz!!!" })
