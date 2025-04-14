@@ -1,5 +1,25 @@
 const User = require("../models/userModel")
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+
+const signToken = (user_id) => {
+    return jwt.sign(
+        { id: user_id },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXP }
+    )
+}
+
+const createSendToken = (user, code, res) => {
+    const token = signToken(user._id)
+    res.cookie('jwt', token, {
+        expires: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        httpOnly: true,
+        // secure: true
+    })
+    user.password = undefined
+    res.status(code).json({ message: 'oturum açildi', token, user })
+}
 
 exports.signup = async (req, res) => {
     try {
@@ -10,17 +30,8 @@ exports.signup = async (req, res) => {
             passwordConfirm: req.body.passwordConfirm,
         });
 
-        const token = jwt.sign(
-            { id: newUser.id },
-            process.env.JWT_SECRET,
-            { expiresIn: '30d' }
-        )
+        createSendToken(newUser, 201, res)
 
-        res.status(201).json({
-            message: "Kayit Olundu",
-            user: newUser,
-            token,
-        })
     } catch (error) {
         res.status(500).json({
             message: "Üzgünüz bir hata oluştu",
@@ -31,13 +42,30 @@ exports.signup = async (req, res) => {
 
 exports.login = async (req, res) => {
     try {
-        res.status(200).json({
-            message: "Giriş yapildi"
-        })
+
+        const { email, password } = req.body
+
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Lütfen mail ve şifrenizi giriniz' })
+        }
+
+        const user = await User.findOne({ email })
+
+        if (!user) {
+            return res.status(404).json({ message: 'Girdiğiniz maile kayitli kullanici yok' })
+        }
+
+        const isValid = await user.correctPass(password, user.password)
+
+        if (!isValid) {
+            return res.status(401).json({ message: 'Girdiğiniz şifre geçersiz' })
+        }
+        createSendToken(user, 200, res)
 
     } catch (error) {
         res.status(500).json({
-            message: "Üzgünüz bir hata oluştu"
+            message: "Üzgünüz bir hata oluştu",
+            error: error.message
         })
     }
 }
