@@ -92,3 +92,69 @@ exports.getTourStats = async (req, res) => {
         return res.status(500).json({ message: "rapor olusturulamadi" });
     }
 };
+
+exports.getMonthlyPlan = async (req, res) => {
+    const year = Number(req.params.year)
+    try {
+        const stats = await Tour.aggregate([
+            {
+                $unwind: {
+                    path: "$startDates"
+                }
+            },
+            {
+                $match: {
+                    startDates: {
+                        $gte: new Date(`${year}-01-01`),
+                        $lte: new Date(`${year}-12-31`)
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        $month: "$startDates"
+                    },
+                    count: {
+                        $sum: 1
+                    },
+                    tours: {
+                        $push: "$name"
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    mouth: "$_id"
+                }
+            },
+            {
+                $project: {
+                    _id: 0
+                }
+            },
+            {
+                $sort: {
+                    month: 1
+                }
+            }
+        ]);
+
+        if (stats.length === 0) {
+            return res.status(404).json({
+                message: `${year} yilina ait bir rapor bulunamadi`
+            })
+        }
+
+        res.status(200).json({
+            message: `${year} yili için aylık plan oluşturuldu`,
+            stats
+        })
+
+    } catch (error) {
+        res.status(500).json({
+            message: `${year} yili için planlar oluşturulamadi`,
+            error: error.message
+        })
+    }
+}
