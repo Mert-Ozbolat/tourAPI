@@ -1,4 +1,5 @@
 const User = require("../models/userModel")
+const jwt = require('jsonwebtoken');
 
 exports.signup = async (req, res) => {
     try {
@@ -8,9 +9,17 @@ exports.signup = async (req, res) => {
             password: req.body.password,
             passwordConfirm: req.body.passwordConfirm,
         });
+
+        const token = jwt.sign(
+            { id: newUser.id },
+            process.env.JWT_SECRET,
+            { expiresIn: '30d' }
+        )
+
         res.status(201).json({
             message: "Kayit Olundu",
-            user: newUser
+            user: newUser,
+            token,
         })
     } catch (error) {
         res.status(500).json({
