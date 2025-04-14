@@ -1,15 +1,11 @@
 const express = require('express')
+const { signup, login, logout } = require('../controllers/authController')
 
 const router = express.Router()
 
-router.route('/')
-    .get((req, res) => { })
-    .post((req, res) => { })
-
-router.route('/:id')
-    .get((req, res) => { })
-    .delete((req, res) => { })
-    .patch((req, res) => { })
+router.post('/signup', signup)
+router.post('/login', login)
+router.post('/logout', logout)
 
 module.exports = router
 

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const validator = require('validator');
 
 const tourSchema = new mongoose.Schema(
     {
@@ -6,10 +7,10 @@ const tourSchema = new mongoose.Schema(
             type: String,
             unique: [true, "Bu tur ismi zaten mevcut"],
             required: [true, "Tur isim değerine sahip olmalı"],
-            // validate: [
-            //   validator.isAlphanumeric, // third party validator
-            //   "Tur ismi özel karakter içermemeli",
-            // ],
+            validate: [
+                validator.isAlphanumeric, // third party validator
+                "Tur ismi özel karakter içermemeli",
+            ],
         },
 
         price: {
@@ -137,6 +138,16 @@ tourSchema.pre('save', function (next) {
 tourSchema.post('updateOne', function (doc, next) {
     console.log(doc._id, "şifreniz güncellendi")
     next();
+})
+
+tourSchema.pre('find', function (next) {
+    this.find({ premium: { $ne: true } })
+    next()
+})
+
+tourSchema.pre('aggregate', function (next) {
+    this.pipeline().unshift({ $match: { premium: { ne: true } } })
+    next()
 })
 
 const Tour = mongoose.model('Tour', tourSchema)
