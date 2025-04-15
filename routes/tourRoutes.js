@@ -1,27 +1,27 @@
 const express = require('express')
 const { getAllTours, createTour, getTour, updateTour, deleteTour, aliasTopTours, getTourStats, getMonthlyPlan } = require('../controllers/tourController.js')
 const formattedQuery = require('../middleware/formatQuery.js')
-const { protect } = require('../controllers/authController.js')
+const { protect, restrictTo } = require('../controllers/authController.js')
 
 const router = express.Router()
 
 router.route('/top-tours')
-    .get(protect, aliasTopTours, getAllTours)
+    .get(aliasTopTours, getAllTours)
 
 router.route('/tour-stats')
-    .get(protect, getTourStats)
+    .get(protect, restrictTo('admin'), getTourStats)
 
 router.route('/monthly-plan/:year')
-    .get(protect, getMonthlyPlan)
+    .get(protect, restrictTo('admin'), getMonthlyPlan)
 
 router.route('/')
-    .get(protect, formattedQuery, getAllTours)
-    .post(createTour)
+    .get(formattedQuery, restrictTo('lead-guide', 'admin'), getAllTours)
+    .post(protect, createTour)
 
 router.route('/:id')
     .get(getTour)
-    .delete(deleteTour)
-    .patch(updateTour)
+    .delete(protect, restrictTo('lead-guide', 'admin'), deleteTour)
+    .patch(protect, restrictTo('guide', 'lead-guide', 'admin'), updateTour)
 
 module.exports = router
 

@@ -50,7 +50,9 @@ const userSchema = new Schema({
     active: {
         type: Boolean,
         default: true
-    }
+    },
+
+    passChangedAt: Date
 })
 
 userSchema.pre('save', async function (next) {

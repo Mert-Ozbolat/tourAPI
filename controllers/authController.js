@@ -1,6 +1,7 @@
 const User = require("../models/userModel")
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const { json } = require("express");
 
 const signToken = (user_id) => {
     return jwt.sign(
@@ -71,24 +72,15 @@ exports.login = async (req, res) => {
 }
 
 
-exports.logout = async (req, res) => {
-    try {
-        res.status(200).json({
-            message: "Çikiş yapildi"
-        })
-
-    } catch (error) {
-        res.status(500).json({
-            message: "Üzgünüz bir hata oluştu"
-        })
-    }
+exports.logout = (req, res) => {
+    res.clearCookie('jwt').status(200).json({ message: 'Oturumunuz Kapatildi!' })
 }
 
 
 
 //* ------------Authorization MW------------
 
-exports.protect = (req, res, next) => {
+exports.protect = async (req, res, next) => {
 
     let token = req.cookies.jwt || req.headers.authorization
 
@@ -109,5 +101,31 @@ exports.protect = (req, res, next) => {
         }
         return res.status(403).json({ message: 'Gönderilen token geçersiz' })
     }
+
+    const activeUser = await User.findById(decoded.id)
+
+    if (!activeUser) {
+        return res.status(403), json({ message: 'Kullanici hesabina erişilemiyor!!!' })
+    }
+
+    if (!activeUser.active) {
+        return res.status(403), json({ message: 'Kullanici hesabi dondurulmuş' })
+    }
+
+    if (activeUser.passChangedAt && decoded.iat) {
+        const passChangedSeconds = parseInt(activeUser.passChangedAt.getTime() / 1000)
+
+        if (passChangedSeconds > decoded.iat) {
+            return res.status(403).json({
+                message: "Yakin zaamnda şifrenizi değiştiniz!!"
+            })
+        }
+    }
+
     next()
+}
+
+
+exports.restrictTo = (...role) => (req, res) => {
+
 }
