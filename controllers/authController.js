@@ -83,3 +83,31 @@ exports.logout = async (req, res) => {
         })
     }
 }
+
+
+
+//* ------------Authorization MW------------
+
+exports.protect = (req, res, next) => {
+
+    let token = req.cookies.jwt || req.headers.authorization
+
+    if (token && token.startsWith('Bearer')) {
+        token = token.split(" ")[1];
+    }
+
+    if (!token) {
+        return res.status(403).json({ message: 'Bu işlem için yetkiniz yok (jwt gönderilmedi)' })
+    }
+
+    let decoded;
+    try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET)
+    } catch (error) {
+        if (error.message === 'jwt expired') {
+            return res.status(403).json({ message: 'Oturumunuzun süresi doldu' })
+        }
+        return res.status(403).json({ message: 'Gönderilen token geçersiz' })
+    }
+    next()
+}

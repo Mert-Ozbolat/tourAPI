@@ -1,21 +1,21 @@
 const express = require('express')
 const { getAllTours, createTour, getTour, updateTour, deleteTour, aliasTopTours, getTourStats, getMonthlyPlan } = require('../controllers/tourController.js')
 const formattedQuery = require('../middleware/formatQuery.js')
+const { protect } = require('../controllers/authController.js')
 
 const router = express.Router()
 
-
 router.route('/top-tours')
-    .get(aliasTopTours, getAllTours)
+    .get(protect, aliasTopTours, getAllTours)
 
 router.route('/tour-stats')
-    .get(getTourStats)
+    .get(protect, getTourStats)
 
 router.route('/monthly-plan/:year')
-    .get(getMonthlyPlan)
+    .get(protect, getMonthlyPlan)
 
 router.route('/')
-    .get(formattedQuery, getAllTours)
+    .get(protect, formattedQuery, getAllTours)
     .post(createTour)
 
 router.route('/:id')
