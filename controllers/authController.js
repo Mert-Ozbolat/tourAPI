@@ -2,6 +2,8 @@ const User = require("../models/userModel")
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { json } = require("express");
+const e = require("../utils/error");
+
 
 const signToken = (user_id) => {
     return jwt.sign(
@@ -22,7 +24,7 @@ const createSendToken = (user, code, res) => {
     res.status(code).json({ message: 'oturum açildi', token, user })
 }
 
-exports.signup = async (req, res) => {
+exports.signup = async (req, res, next) => {
     try {
         const newUser = await User.create({
             name: req.body.name,
@@ -34,10 +36,7 @@ exports.signup = async (req, res) => {
         createSendToken(newUser, 201, res)
 
     } catch (error) {
-        res.status(500).json({
-            message: "Üzgünüz bir hata oluştu",
-            error: error.message
-        })
+        next(e(500, error.message))
     }
 }
 
@@ -47,27 +46,24 @@ exports.login = async (req, res) => {
         const { email, password } = req.body
 
         if (!email || !password) {
-            return res.status(400).json({ message: 'Lütfen mail ve şifrenizi giriniz' })
+            next(e(400, 'Lütfen mail ve şifrenizi giriniz'))
         }
 
         const user = await User.findOne({ email })
 
         if (!user) {
-            return res.status(404).json({ message: 'Girdiğiniz maile kayitli kullanici yok' })
+            next(e(404, 'Girdiğiniz maile kayitli kullanici yok'))
         }
 
         const isValid = await user.correctPass(password, user.password)
 
         if (!isValid) {
-            return res.status(401).json({ message: 'Girdiğiniz şifre geçersiz' })
+            next(e(403, 'Girdiğiniz şifre geçersiz'))
         }
         createSendToken(user, 200, res)
 
     } catch (error) {
-        res.status(500).json({
-            message: "Üzgünüz bir hata oluştu",
-            error: error.message
-        })
+        next(e(500, error.message))
     }
 }
 
@@ -81,51 +77,62 @@ exports.logout = (req, res) => {
 //* ------------Authorization MW------------
 
 exports.protect = async (req, res, next) => {
+    let token = req.cookies.jwt || req.headers.authorization;
 
-    let token = req.cookies.jwt || req.headers.authorization
-
-    if (token && token.startsWith('Bearer')) {
+    if (token && token.startsWith("Bearer")) {
         token = token.split(" ")[1];
     }
 
     if (!token) {
-        return res.status(403).json({ message: 'Bu işlem için yetkiniz yok (jwt gönderilmedi)' })
+        return next(e(403, "Bu işlem için yetkiniz yok (jwt gönderilmedi)"));
     }
 
     let decoded;
+
     try {
-        decoded = jwt.verify(token, process.env.JWT_SECRET)
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch (error) {
-        if (error.message === 'jwt expired') {
-            return res.status(403).json({ message: 'Oturumunuzun süresi doldu' })
+        if (error.message === "jwt expired") {
+            return next(e(403, "Oturumunuz süresi doldu (tekrar giriş yapın)"));
         }
-        return res.status(403).json({ message: 'Gönderilen token geçersiz' })
+
+        return next(e(403, "Gönderilen token geçersiz"));
     }
 
-    const activeUser = await User.findById(decoded.id)
+    let activeUser;
+
+    try {
+        activeUser = await User.findById(decoded.id);
+    } catch (error) {
+        return next(e(403, "Gönderilen token geçersiz"));
+    }
 
     if (!activeUser) {
-        return res.status(403), json({ message: 'Kullanici hesabina erişilemiyor!!!' })
+        return next(e(403, "Kullanıcının hesabına erişilemiyor (tekrar kaydolun)"));
     }
 
-    if (!activeUser.active) {
-        return res.status(403), json({ message: 'Kullanici hesabi dondurulmuş' })
+    if (!activeUser?.active) {
+        return next(e(403, "Kullanıcının hesabı dondurulmuş"));
     }
 
-    if (activeUser.passChangedAt && decoded.iat) {
-        const passChangedSeconds = parseInt(activeUser.passChangedAt.getTime() / 1000)
+    if (activeUser?.passChangedAt && decoded.iat) {
+        const passChangedSeconds = parseInt(activeUser.passChangedAt.getTime() / 1000);
 
         if (passChangedSeconds > decoded.iat) {
-            return res.status(403).json({
-                message: "Yakin zaamnda şifrenizi değiştiniz!!"
-            })
+            return next(
+                e(403, "Yakın zamanda şifrenizi değiştirdiriniz. Lütfen tekrar giriş yapın")
+            );
         }
     }
+    req.user = activeUser;
 
+    next();
+};
+
+
+exports.restrictTo = (...roles) => (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+        return res.status(404).json({ message: 'Bu işlem için yetkiniz yok' })
+    }
     next()
-}
-
-
-exports.restrictTo = (...role) => (req, res) => {
-
 }
