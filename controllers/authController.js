@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { json } = require("express");
 const e = require("../utils/error");
+const sendMail = require("../utils/sendEmail");
 
 
 const signToken = (user_id) => {
@@ -139,6 +140,13 @@ exports.restrictTo = (...roles) => (req, res, next) => {
 
 
 //* Şifer Sıfırlama 
-exports.forgotPassword = async (req, res, next) => { }
+exports.forgotPassword = async (req, res, next) => {
+    const user = await User.findOne({ email: req.body.email })
+    if (!user) return next(e(404, "Bu mail adresine kayitli kullanici yok"))
+    const resetToken = user.createSendToken()
+    await user.save({ validateBeforeSave: false })
+    sendMail()
+    res.status(201).json({ message: "eposta gönderildi" })
+}
 
 exports.resetPassword = async (req, res, next) => { }

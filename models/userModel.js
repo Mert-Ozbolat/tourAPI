@@ -53,7 +53,9 @@ const userSchema = new Schema({
         default: true
     },
 
-    passChangedAt: Date
+    passChangedAt: Date,
+    passResetToken: String,
+    passResetExpires: Date
 })
 
 userSchema.pre('save', async function (next) {
