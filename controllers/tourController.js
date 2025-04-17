@@ -1,11 +1,12 @@
 const Tour = require("../models/tourModel.js")
 const APIFeatures = require("../utils/apiFeatures.js")
+const e = require("../utils/error.js")
 
 
 
 
 
-exports.getAllTours = async (req, res) => {
+exports.getAllTours = async (req, res, next) => {
     try {
         const features = new APIFeatures(
             Tour.find(),
@@ -22,43 +23,44 @@ exports.getAllTours = async (req, res) => {
 
         res.json({ message: 'getAllTours başarili', results: tours.length, tours })
     } catch (error) {
-        res.staus(404).json({ text: "getAllTours Başarisiz!!!" })
+        next(e(500, error.message))
     }
 }
 
-exports.createTour = async (req, res) => {
+exports.createTour = async (req, res, next) => {
     try {
         const newTour = await Tour.create(req.body)
         res.json({ text: 'createTour başarili', tour: newTour })
     } catch (error) {
         res.staus(404).json({ text: "createTour Başarisiz!!!", error: error.message })
+        next(e(404, error.message))
     }
 }
 
-exports.getTour = async (req, res) => {
+exports.getTour = async (req, res, next) => {
     try {
         const tour = await Tour.findById(req.params.id)
         res.json({ text: 'getTour basarili', tour })
     } catch (error) {
-        res.status(400).json({ text: 'getTour basarisiz' })
+        next(e(400, error.message))
     }
 }
 
-exports.deleteTour = async (req, res) => {
+exports.deleteTour = async (req, res, next) => {
     try {
         await Tour.deleteOne({ _id: req.params.id })
         res.status(204).json({})
     } catch (error) {
-        res.status(400).json({ text: 'deleteTour basarisiz' })
+        next(e(400, error.message))
     }
 }
 
-exports.updateTour = async (req, res) => {
+exports.updateTour = async (req, res, next) => {
     try {
         const tour = await Tour.findByIdAndUpdate(req.params.id, req.body)
         res.json({ text: 'updateTour basarili', tour })
     } catch (error) {
-        res.status(400).json({ text: 'update basarisiz' })
+        next(e(400, error.message))
     }
 }
 
@@ -71,7 +73,7 @@ exports.aliasTopTours = async (req, res, next) => {
     next()
 }
 
-exports.getTourStats = async (req, res) => {
+exports.getTourStats = async (req, res, next) => {
     try {
         const stats = await Tour.aggregate([
             { $match: { ratingsAverage: { $gte: 4.0 } }, },
@@ -89,11 +91,11 @@ exports.getTourStats = async (req, res) => {
         ]);
         return res.status(200).json({ message: "rapor olusturuldu", stats });
     } catch (err) {
-        return res.status(500).json({ message: "rapor olusturulamadi" });
+        next(e(500, error.message))
     }
 };
 
-exports.getMonthlyPlan = async (req, res) => {
+exports.getMonthlyPlan = async (req, res, next) => {
     const year = Number(req.params.year)
     try {
         const stats = await Tour.aggregate([

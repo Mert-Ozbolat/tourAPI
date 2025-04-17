@@ -136,3 +136,9 @@ exports.restrictTo = (...roles) => (req, res, next) => {
     }
     next()
 }
+
+
+//* Şifer Sıfırlama 
+exports.forgotPassword = async (req, res, next) => { }
+
+exports.resetPassword = async (req, res, next) => { }
