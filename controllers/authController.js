@@ -1,7 +1,7 @@
 const User = require("../models/userModel")
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const { json } = require("express");
+const crypto = require("crypto");
 const e = require("../utils/error");
 const sendMail = require("../utils/sendEmail");
 
@@ -141,12 +141,46 @@ exports.restrictTo = (...roles) => (req, res, next) => {
 
 //* Şifer Sıfırlama 
 exports.forgotPassword = async (req, res, next) => {
+
     const user = await User.findOne({ email: req.body.email })
+
     if (!user) return next(e(404, "Bu mail adresine kayitli kullanici yok"))
+
     const resetToken = user.createSendToken()
+
     await user.save({ validateBeforeSave: false })
-    sendMail()
+
+    const url = `${req.protocol}://${req.headers.host}/api/users/reset-password/${resetToken}`;
+
+    await sendMail({
+        email: user.email,
+        subject: "Şifre sıfırlama bağlantısı (10 dakika)",
+        text: resetToken,
+        html: `
+        <h2>Merhaba ${user.name}</h2>
+        <p><b>${user.email}</b> eposta adresine bağlı tourify hesabınız için şifre sıfırlama bağlantısı aşağıdadır </p>
+        <a href="${url}">${url}</a>
+        <p>Yeni şifre ile birlikte yukarıdaki bağlantıysa <i>PATCH</i> isteği attınız</p>
+        <p><b><i>Tourify Ekibi</i></b></p>
+        `,
+    });
+
     res.status(201).json({ message: "eposta gönderildi" })
 }
 
-exports.resetPassword = async (req, res, next) => { }
+exports.resetPassword = async (req, res, next) => {
+    const token = req.params.token
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+
+    const user = await User.findOne({
+        passResetToken: hashedToken,
+        passResetExpires: { $gt: Date.now() }
+    })
+
+    if (!user) {
+        return next(e(403, 'Tokenın süresi dolmuş'))
+    }
+
+    res.status(200).json({ message: 'şifre güncellendi' })
+}
