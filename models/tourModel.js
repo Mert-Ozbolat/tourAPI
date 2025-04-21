@@ -145,6 +145,14 @@ tourSchema.pre('find', function (next) {
     next()
 })
 
+userSchema.pre(/^find/, function (next) {
+    this.populate({
+        path: "guides",
+        select: "-password -_v -passResetToken -passResetExpires -passChangedAt"
+    });
+    next();
+});
+
 tourSchema.pre('aggregate', function (next) {
     this.pipeline().unshift({ $match: { premium: { ne: true } } })
     next()

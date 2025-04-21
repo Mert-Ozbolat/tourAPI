@@ -7,6 +7,7 @@ const error = require('./utils/error.js')
 const rateLimit = require('express-rate-limit')
 const helmet = require('helmet')
 const sanitize = require('express-mongo-sanitize')
+const hpp = require('hpp')
 
 
 const app = express()
@@ -19,8 +20,9 @@ const limiter = rateLimit({
 
 app.use(helmet())
 app.use('/api', limiter)
-app.use(sanitize())
 app.use(express.json({ limit: '10kb' }))
+app.use(sanitize())
+app.use(hpp())
 app.use(cookieParser())
 
 app.use('/api/tours', tourRouter)
