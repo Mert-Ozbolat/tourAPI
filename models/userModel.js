@@ -72,6 +72,12 @@ userSchema.pre('save', async function (next) {
 })
 
 
+userSchema.pre(/^find/, function (next) {
+    this.find({ active: { $ne: false } });
+    next();
+});
+
+
 userSchema.methods.correctPass = async function (pass, hashedPass) {
     return await bcrypt.compare(pass, hashedPass)
 }
