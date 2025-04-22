@@ -1,24 +1,22 @@
-const c = require('../utils/catchAsync')
-const Review = require('../models/reviewModel')
+const c = require("../utils/catchAsync");
+const Review = require("../models/reviewModel");
+const factory = require("./handlerFactory");
 
-exports.getAllReviews = c(async (req, res, next) => {
-    const reviews = await Review.find({})
-    res.status(200).json({
-        status: 'success',
-        data: reviews
-    })
-})
+// mw
+exports.setRefIds = (req, res, next) => {
+    // eğerki atılan isteğin body kısmında turun id'si varsa onu kullan ama yoksa o zaman isteği paramtre kısmında gelen tur id'sini kullan
+    if (!req.body.tour) req.body.tour = req.params.tourId;
+    if (!req.body.user) req.body.user = req.user._id;
 
-exports.createReview = c(async (req, res, next) => {
-    const newReview = await Review.create(req.body)
-    res.status(200).json({
-        status: 'success',
-        data: newReview
-    })
-})
+    next();
+};
 
-exports.getReview = c(async (req, res, next) => { })
+exports.getAllReviews = factory.getAll(Review);
 
-exports.updateReview = c(async (req, res, next) => { })
+exports.createReview = factory.createOne(Review);
 
-exports.deleteReview = c(async (req, res, next) => { })
+exports.getReview = factory.getOne(Review);
+
+exports.updateReview = factory.updateOne(Review);
+
+exports.deleteReview = factory.deleteOne(Review);
