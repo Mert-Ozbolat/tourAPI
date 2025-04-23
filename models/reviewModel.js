@@ -1,4 +1,6 @@
 const { Schema, model } = require('mongoose')
+const Tour = require('./tourModel')
+
 
 const reviewShema = new Schema(
     {
@@ -37,6 +39,50 @@ reviewShema.pre(/^find/, function (next) {
     next()
 })
 
+
+
+// bir tur için turun rating ortalamasını hesaplayan bir fonksiyon yazalım
+reviewSchema.statics.calcAverage = async function (tourId) {
+    // aggreage ile istatistik hesapla
+    const stats = await this.aggregate([
+        [
+            // 1) parametre olarak gelen turun id'si ile eşleşen yorumları al
+            { $match: { tour: tourId } },
+            // 2) toplam yorum sayısı ve yorumların ortalama değerini hesapla
+            {
+                $group: {
+                    _id: "$tour",
+                    nRating: { $sum: 1 }, // toplam yorum sayısı
+                    avgRating: { $avg: "$rating" }, // rating ortalaması
+                },
+            },
+        ],
+    ]);
+
+    // eğer tura atılan yorum varsa hesaplanan istatistikleri tur belgesine kayder
+    if (stats.length > 0) {
+        await Tour.findByIdAndUpdate(tourId, {
+            ratingsAverage: stats[0].avgRating,
+            ratingsQuantity: stats[0].nRating,
+        });
+    } else {
+        await Tour.findByIdAndUpdate(tourId, {
+            ratingsAverage: 4,
+            ratingsQuantity: 0,
+        });
+    }
+};
+
+
+reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
+
+reviewSchema.post('save', function () {
+    Review.calcAverage(thşs.tour)
+})
+
+reviewSchema.post(/^findOneAnd/, function (document) {
+    Review.calcAverage(document.tour)
+})
 
 const Review = model('Review', reviewShema)
 model.exports = Review

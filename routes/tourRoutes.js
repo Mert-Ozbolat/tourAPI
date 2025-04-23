@@ -1,5 +1,5 @@
 const express = require('express')
-const { getAllTours, createTour, getTour, updateTour, deleteTour, aliasTopTours, getTourStats, getMonthlyPlan } = require('../controllers/tourController.js')
+const { getAllTours, createTour, getTour, updateTour, deleteTour, aliasTopTours, getTourStats, getMonthlyPlan, getToursWithin, getDistances } = require('../controllers/tourController.js')
 const formattedQuery = require('../middleware/formatQuery.js')
 const { protect, restrictTo } = require('../controllers/authController.js')
 const reviewController = require('../controllers/reviewController.js')
@@ -28,6 +28,11 @@ router.route('/:tourId/reviews')
     .get(reviewController.getAllReviews)
     .post(protect, reviewController.setRefIds, reviewController.createReview)
 
+router.route('/tours-within/:distance/center/:latlng/unit/:unit')
+    .get(getToursWithin)
+
+router.route('/distances/:latlng/unit/:unit')
+    .get(getDistances)
 
 module.exports = router
 

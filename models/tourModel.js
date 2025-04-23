@@ -158,6 +158,9 @@ tourSchema.pre('aggregate', function (next) {
     next()
 })
 
-const Tour = mongoose.model('Tour', tourSchema)
+tourSchema.index({ price: 1, ratingsAverage: -1 })
+tourSchema.index({ startLocation: '2dsphere' })
 
+
+const Tour = mongoose.model('Tour', tourSchema)
 module.exports = Tour
